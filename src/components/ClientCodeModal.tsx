@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Code2, Copy, Check, X, ShieldAlert, FileCode } from 'lucide-react';
+import { FileCode, Copy, Check, X } from 'lucide-react';
 import { DEFAULT_MASTER_SECRET_KEY } from '../utils/crypto';
 
 interface ClientCodeModalProps {
@@ -47,7 +47,6 @@ object HoshdarLicenseValidator {
         val cleanCode = rawEnteredCode.trim().uppercase().replace("-", "")
 
         for (tier in Tier.values()) {
-            // ساخت رشته پیلود بر اساس استاندارد دیاگ هوشدار
             val payload = "HOSHDAR_DIAG_ACTIVATION_8DIGIT_V2:$cleanDevice:\${tier.code}:HMAC_SHA256"
             val hexHash = hmacSha256(MASTER_SECRET, payload)
 
@@ -158,48 +157,48 @@ public class HoshdarLicenseValidator {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white border-2 border-black rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+        <div className="p-4 border-b border-[#cccccc] bg-white flex items-center justify-between">
           <div className="flex items-center space-x-2 space-x-reverse">
-            <FileCode className="w-5 h-5 text-amber-400" />
+            <FileCode className="w-5 h-5 text-black" />
             <div>
-              <h3 className="font-bold text-white text-sm">
+              <h3 className="font-bold text-black text-sm">
                 سورس‌کد اعتبارسنجی کلاینت (Client Verification Module)
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-black font-medium">
                 این کلاس را در اپلیکیشن اندروید دیاگ کلاینت کپی کنید تا کد فعالسازی را آفلاین بررسی کند.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1 rounded-lg text-black hover:bg-[#e6e6e6]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab & Action bar */}
-        <div className="px-4 py-2.5 bg-slate-950/40 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-4 py-2.5 bg-white border-b border-[#cccccc] flex items-center justify-between">
           <div className="flex space-x-2 space-x-reverse text-xs">
             <button
               onClick={() => setActiveLang('kotlin')}
-              className={`px-3 py-1 rounded-lg font-mono font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg font-mono font-bold transition-colors ${
                 activeLang === 'kotlin'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black border border-[#cccccc] hover:bg-[#e6e6e6]'
               }`}
             >
               Kotlin (Compose / Android)
             </button>
             <button
               onClick={() => setActiveLang('java')}
-              className={`px-3 py-1 rounded-lg font-mono font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg font-mono font-bold transition-colors ${
                 activeLang === 'java'
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black border border-[#cccccc] hover:bg-[#e6e6e6]'
               }`}
             >
               Java (Legacy Android)
@@ -208,16 +207,16 @@ public class HoshdarLicenseValidator {
 
           <button
             onClick={handleCopy}
-            className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-all"
+            className="px-3 py-1 rounded-lg text-xs font-bold bg-white hover:bg-[#e6e6e6] text-black border border-[#cccccc] flex items-center gap-1.5 transition-all shadow-sm"
           >
             {copied ? (
               <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">کپی شد!</span>
+                <Check className="w-3.5 h-3.5 text-black stroke-[2.5]" />
+                <span className="text-black">کپی شد!</span>
               </>
             ) : (
               <>
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
+                <Copy className="w-3.5 h-3.5 text-black" />
                 <span>کپی کامل سورس</span>
               </>
             )}
@@ -225,18 +224,18 @@ public class HoshdarLicenseValidator {
         </div>
 
         {/* Code Block */}
-        <div className="flex-1 overflow-auto p-4 bg-slate-950 font-mono text-xs text-slate-200 leading-relaxed" dir="ltr">
+        <div className="flex-1 overflow-auto p-4 bg-[#e6e6e6] font-mono text-xs text-black leading-relaxed font-semibold" dir="ltr">
           <pre>
             <code>{currentCode}</code>
           </pre>
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-950/80 border-t border-slate-800 text-right text-[11px] text-slate-400 flex items-center justify-between">
+        <div className="p-3 bg-white border-t border-[#cccccc] text-right text-[11px] text-black font-semibold flex items-center justify-between">
           <span>الگوریتم بدون نیاز به اینترنت و به صورت کاملاً آفلاین کار می‌کند.</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium"
+            className="px-4 py-1.5 rounded-lg bg-white hover:bg-[#e6e6e6] text-black text-xs font-bold border border-[#cccccc]"
           >
             بستن
           </button>

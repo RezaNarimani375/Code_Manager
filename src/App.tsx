@@ -60,7 +60,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-200">
+    <div className="min-h-screen bg-[#e6e6e6] text-black flex flex-col font-sans selection:bg-amber-300 selection:text-black">
       {/* Top Header & Navigation Bar */}
       <Navigation
         activeTab={activeTab}
@@ -106,15 +106,15 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/90 py-4 px-6 text-center text-xs text-slate-500 hidden md:block">
+      <footer className="border-t border-[#cccccc] bg-[#e6e6e6] py-4 px-6 text-center text-xs text-black hidden md:block">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-300">سامانه مدیریت لایسنس دیاگ هوشدار</span>
+            <span className="font-bold text-black">سامانه مدیریت لایسنس دیاگ هوشدار</span>
             <span>•</span>
-            <span className="text-amber-400 font-mono text-[11px]">Hoshdar Diag License Manager</span>
+            <span className="font-mono text-[11px] font-bold text-black">Hoshdar Diag License Manager</span>
           </div>
           <div>
-            <span>طراحی و توسعه: مهندس نریمانی • هسته رمزنگاری HMAC-SHA256</span>
+            <span className="text-black font-medium">طراحی و توسعه: مهندس نریمانی • هسته رمزنگاری HMAC-SHA256</span>
           </div>
         </div>
       </footer>
