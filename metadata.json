@@ -1,0 +1,8 @@
+{
+  "name": "Code Manager - WiFi PMotor",
+  "description": "License management and code configuration center for WiFi PMotor controllers and smart motor devices.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,44 @@
+name: CI/CD Build & Verification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-test:
+    name: Build & Lint Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run Type Check & Linter
+        run: npm run lint
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Upload Production Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-manager-wifi-pmotor-dist
+          path: dist/
+          retention-days: 7
