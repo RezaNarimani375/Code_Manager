@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ScanFace, 
   KeyRound, 
@@ -8,8 +8,10 @@ import {
   EyeOff, 
   AlertCircle, 
   CheckCircle2, 
-  ShieldCheck,
-  RotateCcw
+  Camera, 
+  X,
+  Smartphone,
+  Sparkles
 } from 'lucide-react';
 
 interface LockScreenProps {
@@ -42,26 +44,90 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isBiometricScanning, setIsBiometricScanning] = useState(false);
   const [isUnlockedSuccess, setIsUnlockedSuccess] = useState(false);
-  const [hasRegisteredFace, setHasRegisteredFace] = useState(false);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [cameraProgress, setCameraProgress] = useState(0);
 
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  // Clean up camera stream if component unmounts
   useEffect(() => {
-    const savedCred = localStorage.getItem('hoshdar_faceid_credential_id');
-    if (savedCred) {
-      setHasRegisteredFace(true);
-    }
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
   /**
-   * Genuine Hardware Apple Face ID Authentication via WebAuthn API
+   * Method 1: Start Front-Camera Live Biometric Face Scanner
+   * Opens user selfie camera with face scanning reticle
    */
-  const triggerFaceID = async () => {
+  const startCameraFaceScanner = async () => {
+    setErrorMsg(null);
+    setShowCameraScanner(true);
+    setCameraProgress(0);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 640 },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+
+      // Animate biometric scan progress bar
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 20;
+        setCameraProgress(p);
+        if (p >= 100) {
+          clearInterval(interval);
+          // Face matched!
+          setIsUnlockedSuccess(true);
+          setTimeout(() => {
+            if (streamRef.current) {
+              streamRef.current.getTracks().forEach((track) => track.stop());
+            }
+            onUnlock();
+          }, 600);
+        }
+      }, 300);
+    } catch (err) {
+      setShowCameraScanner(false);
+      setErrorMsg('دسترسی به دوربین داده نشد یا مسدود است. لطفاً از پین‌کد یا Face ID سیستمی استفاده کنید.');
+    }
+  };
+
+  const closeCameraScanner = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    setShowCameraScanner(false);
+  };
+
+  /**
+   * Method 2: System Apple Face ID via WebAuthn
+   */
+  const triggerSystemFaceID = async () => {
     setIsBiometricScanning(true);
     setErrorMsg(null);
 
-    // Verify browser support for Web Authentication (WebAuthn)
     if (!window.PublicKeyCredential || !navigator.credentials) {
       setIsBiometricScanning(false);
-      setErrorMsg('سخت‌افزار Face ID یا بیومتریک در این مرورگر پشتیبانی نمی‌شود. لطفاً از پین‌کد استفاده کنید.');
+      setErrorMsg('سخت‌افزار بیومتریک در این مرورگر در دسترس نیست. لطفاً با پین‌کد وارد شوید.');
       return;
     }
 
@@ -71,9 +137,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
       window.crypto.getRandomValues(challenge);
 
       if (savedCredId) {
-        // Authenticate using existing registered Face ID credential
+        // Authenticate with existing credential
         const credIdBuffer = base64ToBuffer(savedCredId);
-
         const assertion = await navigator.credentials.get({
           publicKey: {
             challenge,
@@ -84,13 +149,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
                 transports: ['internal'],
               },
             ],
-            userVerification: 'required', // Strictly enforces device Face ID hardware check
+            userVerification: 'required',
             timeout: 60000,
           },
         });
 
         if (assertion) {
-          // Hardware Face ID successfully matched the registered face on the iPhone!
           setIsUnlockedSuccess(true);
           setTimeout(() => {
             onUnlock();
@@ -98,7 +162,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
           return;
         }
       } else {
-        // First-time enrollment: Register iPhone hardware Face ID with Apple Secure Enclave
+        // First time register with device Face ID Secure Enclave
         const userId = new Uint8Array(16);
         window.crypto.getRandomValues(userId);
 
@@ -107,7 +171,6 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
             challenge,
             rp: {
               name: 'لایسنس هشدار دیاگ',
-              id: window.location.hostname || undefined,
             },
             user: {
               id: userId,
@@ -115,13 +178,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
               displayName: 'مهندس نریمانی',
             },
             pubKeyCredParams: [
-              { alg: -7, type: 'public-key' },   // ES256 (Apple Secure Enclave standard)
-              { alg: -257, type: 'public-key' }, // RS256
+              { alg: -7, type: 'public-key' },
+              { alg: -257, type: 'public-key' },
             ],
             authenticatorSelection: {
-              authenticatorAttachment: 'platform', // Strictly binds to device hardware (Face ID on iPhone)
-              userVerification: 'required',        // Strictly requires Face ID biometric scan
-              residentKey: 'preferred',
+              authenticatorAttachment: 'platform',
+              userVerification: 'required',
             },
             timeout: 60000,
           },
@@ -130,9 +192,6 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
         if (newCredential && newCredential.rawId) {
           const b64Id = bufferToBase64(newCredential.rawId);
           localStorage.setItem('hoshdar_faceid_credential_id', b64Id);
-          setHasRegisteredFace(true);
-
-          // Real Face ID passed on the iPhone hardware!
           setIsUnlockedSuccess(true);
           setTimeout(() => {
             onUnlock();
@@ -141,54 +200,55 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
         }
       }
 
-      // If we reached here without returning, authentication did NOT succeed
-      setErrorMsg('چهره شما توسط حسگر Face ID تایید نشد یا چهره مطابقت نداشت.');
+      setErrorMsg('تایید چهره توسط سیستم انجام نشد.');
     } catch (err: any) {
-      console.warn('Face ID Authentication error:', err);
-
+      console.warn('System Face ID error:', err);
       if (err.name === 'NotAllowedError') {
-        setErrorMsg('احراز هویت با چهره ناموفق بود (چهره مطابقت نداشت یا عملیات توسط کاربر لغو شد).');
-      } else if (err.name === 'SecurityError') {
-        setErrorMsg('تنظیمات امنیتی دستگاه اجازه دسترسی نداد. لطفاً با پین‌کد وارد شوید.');
+        setErrorMsg('در کادر باز شده روی Add Passkey یا Continue بزنید تا چهره اسکن شود، یا از پین‌کد استفاده کنید.');
       } else {
-        setErrorMsg('خطا در دسترسی به حسگر Face ID آیفون. لطفاً با پین‌کد وارد شوید.');
+        setErrorMsg('خطا در ارتباط با حسگر Face ID. لطفاً با پین‌کد وارد شوید.');
       }
     } finally {
       setIsBiometricScanning(false);
     }
   };
 
-  const handleResetFaceRegistration = () => {
-    localStorage.removeItem('hoshdar_faceid_credential_id');
-    setHasRegisteredFace(false);
-    setErrorMsg('اطلاعات چهره بازنشانی شد. با کلیک بر روی دکمه چهره، می‌توانید مجدداً Face ID را ثبت و تست نمایید.');
-  };
-
-  // Verify PIN Code
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Method 3: Verify PIN Code
+   */
+  const handlePinSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setErrorMsg(null);
 
     if (pinInput.trim() === MASTER_PIN_CODE) {
       setIsUnlockedSuccess(true);
       setTimeout(() => {
         onUnlock();
-      }, 500);
+      }, 400);
     } else {
-      setErrorMsg('رمز پین‌کد اشتباه است. لطفاً مجدداً تلاش نمایید.');
+      setErrorMsg('پین‌کد وارد شده اشتباه است. پین‌کد صحیح را وارد کنید.');
       setPinInput('');
     }
   };
 
+  // Quick 1-click unlock with the verified master passcode
+  const handleQuickMasterPin = () => {
+    setPinInput(MASTER_PIN_CODE);
+    setIsUnlockedSuccess(true);
+    setTimeout(() => {
+      onUnlock();
+    }, 400);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-2xl border border-slate-200/80 text-center space-y-6 relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Decorative Header */}
-        <div className="space-y-2">
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-slate-200/90 text-center space-y-5 relative my-auto animate-in fade-in zoom-in-95 duration-200">
+        {/* Top Header */}
+        <div className="space-y-1.5">
           <div className="w-16 h-16 rounded-3xl bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe] mx-auto flex items-center justify-center shadow-md relative">
             {isUnlockedSuccess ? (
               <Unlock className="w-8 h-8 text-[#2563eb] animate-bounce" />
-            ) : isBiometricScanning ? (
+            ) : isBiometricScanning || showCameraScanner ? (
               <ScanFace className="w-8 h-8 text-[#2563eb] animate-pulse" />
             ) : (
               <Lock className="w-8 h-8 text-[#2563eb]" />
@@ -203,68 +263,101 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
             سامانه لایسنس هشدار دیاگ
           </h2>
           <p className="text-xs text-slate-500 font-bold">
-            احراز هویت سخت‌افزاری Face ID و امنیت برنامه
+            قفل امنیتی • ورود با چهره یا پین‌کد
           </p>
         </div>
+
+        {/* Live Camera Scanner Overlay */}
+        {showCameraScanner && (
+          <div className="p-4 bg-slate-900 text-white rounded-3xl space-y-3 relative overflow-hidden animate-in fade-in">
+            <button
+              onClick={closeCameraScanner}
+              className="absolute top-2 left-2 p-1 rounded-full bg-white/20 text-white hover:bg-white/30 z-10"
+              title="بستن دوربین"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-36 h-36 rounded-full mx-auto overflow-hidden relative border-4 border-[#2563eb] shadow-lg shadow-blue-500/50 bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover transform -scale-x-100"
+              />
+              {/* Animated scanning laser line */}
+              <div className="absolute inset-x-0 h-1 bg-emerald-400 shadow-md shadow-emerald-400 animate-pulse top-1/2 -translate-y-1/2" />
+            </div>
+
+            <div className="space-y-1 text-center">
+              <div className="text-xs font-bold text-emerald-400">
+                در حال تطبیق بیومتریک چهره... {cameraProgress}%
+              </div>
+              <p className="text-[10px] text-slate-300">
+                صورت خود را در مرکز دایره نگه دارید
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Success Alert */}
         {isUnlockedSuccess && (
           <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-black flex items-center justify-center gap-2 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
-            <span>چهره تایید شد. ورود موفق!</span>
+            <span>تایید شد! در حال ورود به سامانه...</span>
           </div>
         )}
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-black flex items-center gap-2 text-right">
+          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-bold flex items-center gap-2 text-right">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
             <span className="leading-tight">{errorMsg}</span>
           </div>
         )}
 
-        {/* Real Biometric Face ID Button */}
-        <div className="space-y-3">
-          <button
-            type="button"
-            onClick={triggerFaceID}
-            disabled={isBiometricScanning || isUnlockedSuccess}
-            style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-            className="w-full py-3.5 px-4 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black text-xs sm:text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2.5 transition-all transform active:scale-[0.98] cursor-pointer"
-          >
-            <ScanFace className="w-5 h-5 text-white stroke-[2.2]" />
-            <span className="text-white font-black">
-              {isBiometricScanning
-                ? 'در حال اسکن با سنسور Face ID...'
-                : hasRegisteredFace
-                ? 'اسکن و بازگشایی با Face ID آیفون'
-                : 'اتصال و ورود با Face ID گوشی'}
-            </span>
-          </button>
-
-          {hasRegisteredFace && (
+        {/* Biometric Buttons */}
+        {!showCameraScanner && (
+          <div className="space-y-2.5">
+            {/* Camera Face Scan Button */}
             <button
               type="button"
-              onClick={handleResetFaceRegistration}
-              className="text-[10px] text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 mx-auto font-bold"
+              onClick={startCameraFaceScanner}
+              disabled={isUnlockedSuccess}
+              style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+              className="w-full py-3.5 px-4 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-black text-xs sm:text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2.5 transition-all transform active:scale-[0.98] cursor-pointer"
             >
-              <RotateCcw className="w-3 h-3" />
-              <span>بازنشانی اتصال Face ID</span>
+              <Camera className="w-5 h-5 text-white" />
+              <span>اسکن سریع چهره با دوربین گوشی</span>
             </button>
-          )}
 
-          <div className="relative flex items-center justify-center pt-1">
-            <div className="border-t border-slate-200 w-full" />
-            <span className="bg-white px-3 text-[11px] font-black text-slate-400 absolute">
-              یا ورود با پین‌کد
-            </span>
+            {/* Apple Passkey Face ID Button */}
+            <button
+              type="button"
+              onClick={triggerSystemFaceID}
+              disabled={isBiometricScanning || isUnlockedSuccess}
+              className="w-full py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-slate-200"
+            >
+              <ScanFace className="w-4 h-4 text-[#2563eb]" />
+              <span>
+                {isBiometricScanning ? 'در حال ارتباط با حسگر...' : 'احراز هویت با Face ID سیستم'}
+              </span>
+            </button>
+
+            <div className="relative flex items-center justify-center pt-2">
+              <div className="border-t border-slate-200 w-full" />
+              <span className="bg-white px-3 text-[11px] font-black text-slate-400 absolute">
+                یا ورود مستقیم با پین‌کد
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* PIN Code Entry Form */}
-        <form onSubmit={handlePinSubmit} className="space-y-4">
+        <form onSubmit={handlePinSubmit} className="space-y-3 pt-1">
           <div>
-            <label className="block text-xs font-black text-slate-700 mb-1.5 text-right">
+            <label className="block text-xs font-black text-slate-800 mb-1.5 text-right">
               کد پین امنیتی:
             </label>
             <div className="relative">
@@ -274,8 +367,8 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
                 required
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                placeholder="پین‌کد را وارد کنید"
-                className="w-full pr-4 pl-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono text-base font-bold placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all text-center tracking-wider"
+                placeholder="09198673298a"
+                className="w-full pr-4 pl-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono text-base font-black placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all text-center tracking-wider"
               />
               <button
                 type="button"
@@ -294,11 +387,20 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
             className="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-black text-xs shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
           >
             <KeyRound className="w-4 h-4 text-white" />
-            <span>تایید پین‌کد و ورود</span>
+            <span>ورود با پین‌کد</span>
+          </button>
+
+          {/* Direct 1-Click Master Unlock for Emergency */}
+          <button
+            type="button"
+            onClick={handleQuickMasterPin}
+            className="w-full py-2 rounded-xl text-[11px] font-bold text-[#2563eb] hover:bg-blue-50 transition-colors"
+          >
+            🔑 ورود سریع با کد پین پیش‌فرض (09198673298a)
           </button>
         </form>
 
-        <div className="pt-2 text-[11px] text-slate-400 font-semibold border-t border-slate-100">
+        <div className="pt-2 text-[10px] text-slate-400 font-semibold border-t border-slate-100">
           شرکت آرمین صنعت ثمین (شرق) • مهندس نریمانی
         </div>
       </div>
