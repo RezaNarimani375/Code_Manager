@@ -143,6 +143,7 @@ export const GeneratorScreen: React.FC<GeneratorScreenProps> = ({
             <input
               type="text"
               value={customerName}
+              onBlur={() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.body.scrollTop = 0; }}
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder="مثال: کلینیک تخصصی خودرو شرق (مهندس رضایی)"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-xs font-semibold placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all"
@@ -159,6 +160,7 @@ export const GeneratorScreen: React.FC<GeneratorScreenProps> = ({
               type="tel"
               dir="ltr"
               value={customerPhone}
+              onBlur={() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.body.scrollTop = 0; }}
               onChange={(e) => setCustomerPhone(e.target.value)}
               placeholder="0915xxxxxxx"
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-xs font-mono placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all text-right font-bold"
@@ -183,6 +185,7 @@ export const GeneratorScreen: React.FC<GeneratorScreenProps> = ({
                 required
                 maxLength={8}
                 value={deviceCode}
+                onBlur={() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.body.scrollTop = 0; }}
                 onChange={handleDeviceChange}
                 placeholder="84920173"
                 className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-2xl text-slate-900 font-mono text-2xl font-black tracking-widest text-center focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all shadow-inner"

@@ -22,6 +22,41 @@ export function App() {
     return saved ? JSON.parse(saved) : INITIAL_MOCK_LICENSES;
   });
 
+  // Global iOS Virtual Keyboard Scroll & Displacement Fix
+  useEffect(() => {
+    const resetWindowScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    };
+
+    const onFocusOut = () => {
+      resetWindowScroll();
+      setTimeout(resetWindowScroll, 80);
+      setTimeout(resetWindowScroll, 250);
+      setTimeout(resetWindowScroll, 450);
+    };
+
+    window.addEventListener('focusout', onFocusOut);
+    window.addEventListener('blur', resetWindowScroll);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        setTimeout(resetWindowScroll, 80);
+      });
+      window.visualViewport.addEventListener('scroll', () => {
+        if (window.scrollY !== 0) {
+          resetWindowScroll();
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener('focusout', onFocusOut);
+      window.removeEventListener('blur', resetWindowScroll);
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('hoshdar_licenses', JSON.stringify(licenses));
   }, [licenses]);
@@ -29,11 +64,15 @@ export function App() {
   const handleUnlock = () => {
     sessionStorage.setItem('hoshdar_authenticated', 'true');
     setIsLocked(false);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.body.scrollTop = 0;
   };
 
   const handleLockApp = () => {
     sessionStorage.removeItem('hoshdar_authenticated');
     setIsLocked(true);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.body.scrollTop = 0;
   };
 
   const handleSaveLicense = (newLic: DiagLicenseRecord) => {

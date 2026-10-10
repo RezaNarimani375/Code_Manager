@@ -163,6 +163,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           <input
             type="text"
             value={searchTerm}
+            onBlur={() => { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); document.body.scrollTop = 0; }}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="جستجو بر اساس نام مشتری، شماره موبایل یا کد ۸ رقمی دستگاه..."
             className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-semibold placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all"
