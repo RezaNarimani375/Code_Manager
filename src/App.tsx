@@ -1,39 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Navigation, TabType } from './components/Navigation';
 import { GeneratorScreen } from './components/GeneratorScreen';
-import { SimulatorScreen } from './components/SimulatorScreen';
 import { HistoryScreen } from './components/HistoryScreen';
-import { SettingsScreen } from './components/SettingsScreen';
-import { ClientCodeModal } from './components/ClientCodeModal';
+import { AboutScreen } from './components/AboutScreen';
 import { DiagLicenseRecord } from './types';
 import { INITIAL_MOCK_LICENSES } from './data/mockData';
 import { DEFAULT_MASTER_SECRET_KEY } from './utils/crypto';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
-  const [masterSecret, setMasterSecret] = useState<string>(() => {
-    return localStorage.getItem('hoshdar_master_secret') || DEFAULT_MASTER_SECRET_KEY;
-  });
+  const masterSecret = DEFAULT_MASTER_SECRET_KEY;
 
   const [licenses, setLicenses] = useState<DiagLicenseRecord[]>(() => {
     const saved = localStorage.getItem('hoshdar_licenses');
     return saved ? JSON.parse(saved) : INITIAL_MOCK_LICENSES;
   });
 
-  // State passed to simulator if user clicks "Test in Simulator"
-  const [simulatorDevice, setSimulatorDevice] = useState<string>('84920173');
-  const [simulatorActivationCode, setSimulatorActivationCode] = useState<string>('');
-
-  // Modal for viewing Kotlin/Java client verification code
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-
   useEffect(() => {
     localStorage.setItem('hoshdar_licenses', JSON.stringify(licenses));
   }, [licenses]);
-
-  useEffect(() => {
-    localStorage.setItem('hoshdar_master_secret', masterSecret);
-  }, [masterSecret]);
 
   const handleSaveLicense = (newLic: DiagLicenseRecord) => {
     setLicenses((prev) => [newLic, ...prev]);
@@ -43,24 +28,12 @@ export function App() {
     setLicenses((prev) => prev.filter((l) => l.id !== id));
   };
 
-  const handleUpdateStatus = (id: string, newStatus: 'active' | 'expired' | 'revoked') => {
-    setLicenses((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
-    );
-  };
-
   const handleClearAllHistory = () => {
     setLicenses([]);
   };
 
-  const handleTestInSimulator = (deviceCode: string, activationCode: string) => {
-    setSimulatorDevice(deviceCode);
-    setSimulatorActivationCode(activationCode);
-    setActiveTab('simulator');
-  };
-
   return (
-    <div className="min-h-screen bg-[#e6e6e6] text-black flex flex-col font-sans selection:bg-amber-300 selection:text-black">
+    <div className="min-h-screen bg-slate-50 text-black flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Top Header & Navigation Bar */}
       <Navigation
         activeTab={activeTab}
@@ -69,20 +42,10 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {activeTab === 'generator' && (
           <GeneratorScreen
             onSaveLicense={handleSaveLicense}
-            onTestInSimulator={handleTestInSimulator}
-            onOpenClientCodeModal={() => setIsClientModalOpen(true)}
-            masterSecret={masterSecret}
-          />
-        )}
-
-        {activeTab === 'simulator' && (
-          <SimulatorScreen
-            initialDeviceCode={simulatorDevice}
-            initialActivationCode={simulatorActivationCode}
             masterSecret={masterSecret}
           />
         )}
@@ -91,40 +54,26 @@ export function App() {
           <HistoryScreen
             licenses={licenses}
             onDeleteLicense={handleDeleteLicense}
-            onUpdateStatus={handleUpdateStatus}
             onClearAll={handleClearAllHistory}
           />
         )}
 
-        {activeTab === 'settings' && (
-          <SettingsScreen
-            masterSecret={masterSecret}
-            onUpdateMasterSecret={setMasterSecret}
-            onOpenClientCodeModal={() => setIsClientModalOpen(true)}
-          />
-        )}
+        {activeTab === 'about' && <AboutScreen />}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[#cccccc] bg-[#e6e6e6] py-4 px-6 text-center text-xs text-black hidden md:block">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      {/* Modern Footer - White Background with Black Text */}
+      <footer className="border-t border-slate-200 bg-white py-5 px-6 text-center text-xs text-black hidden md:block mt-auto shadow-sm">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-black">سامانه مدیریت لایسنس دیاگ هوشدار</span>
-            <span>•</span>
-            <span className="font-mono text-[11px] font-bold text-black">Hoshdar Diag License Manager</span>
+            <span className="font-black text-black text-sm">لایسنس هشدار دیاگ</span>
+            <span className="text-gray-400">•</span>
+            <span className="font-bold text-gray-700">شرکت آرمین صنعت ثمین (شرق)</span>
           </div>
-          <div>
-            <span className="text-black font-medium">طراحی و توسعه: مهندس نریمانی • هسته رمزنگاری HMAC-SHA256</span>
+          <div className="text-gray-600 font-medium">
+            <span>توسعه و پشتیبانی: مهندس نریمانی (09159650802 - 09930096080)</span>
           </div>
         </div>
       </footer>
-
-      {/* Client Source Code Modal Dialog */}
-      <ClientCodeModal
-        isOpen={isClientModalOpen}
-        onClose={() => setIsClientModalOpen(false)}
-        masterSecret={masterSecret}
-      />
     </div>
   );
 }
