@@ -3,6 +3,7 @@ import { Navigation, TabType } from './components/Navigation';
 import { GeneratorScreen } from './components/GeneratorScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AboutScreen } from './components/AboutScreen';
+import { LockScreen } from './components/LockScreen';
 import { DiagLicenseRecord } from './types';
 import { INITIAL_MOCK_LICENSES } from './data/mockData';
 import { DEFAULT_MASTER_SECRET_KEY } from './utils/crypto';
@@ -10,6 +11,11 @@ import { DEFAULT_MASTER_SECRET_KEY } from './utils/crypto';
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
   const masterSecret = DEFAULT_MASTER_SECRET_KEY;
+
+  // Authentication Lock state (stored in sessionStorage so it prompts upon new session)
+  const [isLocked, setIsLocked] = useState<boolean>(() => {
+    return sessionStorage.getItem('hoshdar_authenticated') !== 'true';
+  });
 
   const [licenses, setLicenses] = useState<DiagLicenseRecord[]>(() => {
     const saved = localStorage.getItem('hoshdar_licenses');
@@ -19,6 +25,16 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('hoshdar_licenses', JSON.stringify(licenses));
   }, [licenses]);
+
+  const handleUnlock = () => {
+    sessionStorage.setItem('hoshdar_authenticated', 'true');
+    setIsLocked(false);
+  };
+
+  const handleLockApp = () => {
+    sessionStorage.removeItem('hoshdar_authenticated');
+    setIsLocked(true);
+  };
 
   const handleSaveLicense = (newLic: DiagLicenseRecord) => {
     setLicenses((prev) => [newLic, ...prev]);
@@ -34,11 +50,15 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-black flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      {/* Biometric Face ID & PIN Security Lock Overlay */}
+      {isLocked && <LockScreen onUnlock={handleUnlock} />}
+
       {/* Top Header & Navigation Bar */}
       <Navigation
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         historyCount={licenses.length}
+        onLockApp={handleLockApp}
       />
 
       {/* Main Content Area */}
