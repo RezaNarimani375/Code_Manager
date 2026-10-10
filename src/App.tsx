@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigation, TabType } from './components/Navigation';
+import { NavigationHeader, BottomNav, TabType } from './components/Navigation';
 import { GeneratorScreen } from './components/GeneratorScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AboutScreen } from './components/AboutScreen';
@@ -12,7 +12,7 @@ export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('generator');
   const masterSecret = DEFAULT_MASTER_SECRET_KEY;
 
-  // Authentication Lock state (stored in sessionStorage so it prompts upon new session)
+  // Authentication Lock state
   const [isLocked, setIsLocked] = useState<boolean>(() => {
     return sessionStorage.getItem('hoshdar_authenticated') !== 'true';
   });
@@ -49,20 +49,20 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-black flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Biometric Face ID & PIN Security Lock Overlay */}
+    <div className="h-[100dvh] max-h-[100dvh] w-full overflow-hidden bg-slate-50 text-black flex flex-col font-sans selection:bg-blue-600 selection:text-white fixed inset-0">
+      {/* Security Lock Screen */}
       {isLocked && <LockScreen onUnlock={handleUnlock} />}
 
-      {/* Top Header & Navigation Bar */}
-      <Navigation
+      {/* Top Header (Anchored at top, shrink-0) */}
+      <NavigationHeader
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         historyCount={licenses.length}
         onLockApp={handleLockApp}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Independent Scrollable Middle Container (Only this scrolls, so viewport never collapses) */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
         {activeTab === 'generator' && (
           <GeneratorScreen
             onSaveLicense={handleSaveLicense}
@@ -79,21 +79,28 @@ export function App() {
         )}
 
         {activeTab === 'about' && <AboutScreen />}
+
+        {/* Desktop Footer */}
+        <footer className="border-t border-slate-200 bg-white py-4 px-6 text-center text-xs text-black hidden md:block mt-8 rounded-2xl shadow-sm">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-black text-black text-xs">لایسنس هشدار دیاگ</span>
+              <span className="text-gray-400">•</span>
+              <span className="font-bold text-gray-700">شرکت آرمین صنعت ثمین (شرق)</span>
+            </div>
+            <div className="text-gray-600 font-medium">
+              <span>توسعه و پشتیبانی: مهندس نریمانی (09159650802 - 09930096080)</span>
+            </div>
+          </div>
+        </footer>
       </main>
 
-      {/* Modern Footer - White Background with Black Text */}
-      <footer className="border-t border-slate-200 bg-white py-5 px-6 text-center text-xs text-black hidden md:block mt-auto shadow-sm">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-black text-black text-sm">لایسنس هشدار دیاگ</span>
-            <span className="text-gray-400">•</span>
-            <span className="font-bold text-gray-700">شرکت آرمین صنعت ثمین (شرق)</span>
-          </div>
-          <div className="text-gray-600 font-medium">
-            <span>توسعه و پشتیبانی: مهندس نریمانی (09159650802 - 09930096080)</span>
-          </div>
-        </div>
-      </footer>
+      {/* Bottom Navigation Bar (Anchored at the bottom of the flex layout, 100% stable, shrink-0) */}
+      <BottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        historyCount={licenses.length}
+      />
     </div>
   );
 }
