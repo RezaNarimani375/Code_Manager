@@ -36,15 +36,9 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
     const cleanUsername = username.trim().toLowerCase();
     const cleanPin = pinInput.trim();
 
-    // Check Username
-    if (cleanUsername !== REQUIRED_USERNAME.toLowerCase()) {
-      setErrorMsg('نام کاربری اشتباه است. نام کاربری مجاز: f.nrimany');
-      return;
-    }
-
-    // Check PIN Code
-    if (cleanPin !== REQUIRED_PIN_CODE) {
-      setErrorMsg('کد پین امنیتی اشتباه است. لطفاً کد صحیح را وارد کنید.');
+    // Secure validation - never leaks which field is incorrect or what the values are
+    if (cleanUsername !== REQUIRED_USERNAME.toLowerCase() || cleanPin !== REQUIRED_PIN_CODE) {
+      setErrorMsg('نام کاربری یا رمز عبور اشتباه است.');
       setPinInput('');
       return;
     }
