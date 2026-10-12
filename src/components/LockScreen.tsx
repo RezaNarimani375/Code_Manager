@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { 
-  KeyRound, 
   Lock, 
   Unlock, 
-  Eye, 
-  EyeOff, 
   AlertCircle, 
   CheckCircle2, 
-  User, 
+  Delete, 
+  RotateCcw,
   ShieldCheck 
 } from 'lucide-react';
 
@@ -15,164 +13,169 @@ interface LockScreenProps {
   onUnlock: () => void;
 }
 
-const REQUIRED_USERNAME = "f.nrimany";
-const REQUIRED_PIN_CODE = "09198673298a";
+const REQUIRED_PASSCODE = "1405";
 
 export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
-  // Read remembered username from localStorage
-  const [username, setUsername] = useState<string>(() => {
-    return localStorage.getItem('hoshdar_remembered_username') || '';
-  });
-
-  const [pinInput, setPinInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [enteredDigits, setEnteredDigits] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isUnlockedSuccess, setIsUnlockedSuccess] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
-  // Critical fix for iOS: When keyboard is dismissed, reset window scroll to 0
-  const handleInputBlur = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    document.body.scrollTop = 0;
-    document.documentElement.scrollTop = 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDigitPress = (digit: string) => {
+    if (isUnlockedSuccess) return;
     setErrorMsg(null);
 
-    // Dismiss virtual keyboard and force window scroll to 0
-    handleInputBlur();
-    setTimeout(handleInputBlur, 80);
-    setTimeout(handleInputBlur, 250);
+    if (enteredDigits.length >= 4) return;
 
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanPin = pinInput.trim();
+    const nextDigits = enteredDigits + digit;
+    setEnteredDigits(nextDigits);
 
-    // Secure validation
-    if (cleanUsername !== REQUIRED_USERNAME.toLowerCase() || cleanPin !== REQUIRED_PIN_CODE) {
-      setErrorMsg('نام کاربری یا رمز عبور اشتباه است.');
-      setPinInput('');
-      return;
+    // Auto-verify when 4 digits are entered
+    if (nextDigits.length === 4) {
+      verifyCode(nextDigits);
     }
+  };
 
-    // Remember username in localStorage so they never have to enter it again
-    localStorage.setItem('hoshdar_remembered_username', REQUIRED_USERNAME);
+  const handleBackspace = () => {
+    if (isUnlockedSuccess) return;
+    setErrorMsg(null);
+    setEnteredDigits((prev) => prev.slice(0, -1));
+  };
 
-    setIsUnlockedSuccess(true);
-    setTimeout(() => {
-      handleInputBlur();
-      onUnlock();
-    }, 450);
+  const handleClearAll = () => {
+    if (isUnlockedSuccess) return;
+    setErrorMsg(null);
+    setEnteredDigits('');
+  };
+
+  const verifyCode = (code: string) => {
+    if (code === REQUIRED_PASSCODE) {
+      setIsUnlockedSuccess(true);
+      setTimeout(() => {
+        onUnlock();
+      }, 450);
+    } else {
+      // Wrong passcode: shake effect and clear
+      setIsShaking(true);
+      setErrorMsg('رمز وارد شده اشتباه است. لطفاً مجدداً تلاش کنید.');
+      setTimeout(() => {
+        setIsShaking(false);
+        setEnteredDigits('');
+      }, 600);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto overscroll-none">
-      <div className="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-8 shadow-2xl border border-slate-200/90 text-center space-y-5 relative my-auto animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto select-none">
+      <div 
+        className={`bg-white rounded-3xl max-w-xs w-full p-6 sm:p-7 shadow-2xl border border-slate-200/90 text-center space-y-4 my-auto animate-in fade-in zoom-in-95 duration-200 transition-transform ${
+          isShaking ? 'animate-bounce' : ''
+        }`}
+      >
         {/* Top Header */}
-        <div className="space-y-1.5">
-          <div className="w-16 h-16 rounded-3xl bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe] mx-auto flex items-center justify-center shadow-md relative">
+        <div className="space-y-1">
+          <div className="w-14 h-14 rounded-2xl bg-[#eff6ff] text-[#2563eb] border border-[#bfdbfe] mx-auto flex items-center justify-center shadow-md relative">
             {isUnlockedSuccess ? (
-              <Unlock className="w-8 h-8 text-[#2563eb] animate-bounce" />
+              <Unlock className="w-7 h-7 text-[#2563eb] animate-bounce" />
             ) : (
-              <Lock className="w-8 h-8 text-[#2563eb]" />
+              <Lock className="w-7 h-7 text-[#2563eb]" />
             )}
             
-            <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+            <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
               isUnlockedSuccess ? 'bg-emerald-500' : 'bg-[#2563eb]'
             }`} />
           </div>
 
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight pt-1">
             سامانه لایسنس هشدار دیاگ
           </h2>
-          <p className="text-xs text-slate-500 font-bold">
-            ورود امن به پنل مدیریت
+          <p className="text-[11px] text-slate-500 font-bold">
+            رمز امنیتی ۴ رقمی را وارد کنید
           </p>
         </div>
 
-        {/* Success Alert */}
-        {isUnlockedSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-black flex items-center justify-center gap-2 animate-in fade-in">
+        {/* Visual 4-Dot Passcode Display */}
+        <div className="py-2">
+          <div className="flex items-center justify-center gap-3.5">
+            {[0, 1, 2, 3].map((index) => {
+              const isFilled = enteredDigits.length > index;
+              return (
+                <div
+                  key={index}
+                  className={`w-4 h-4 rounded-full border-2 transition-all transform ${
+                    isUnlockedSuccess
+                      ? 'bg-emerald-500 border-emerald-500 scale-110 shadow-sm shadow-emerald-400'
+                      : isFilled
+                      ? 'bg-[#2563eb] border-[#2563eb] scale-110 shadow-sm shadow-blue-400'
+                      : 'bg-slate-100 border-slate-300'
+                  }`}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Error / Success Feedback */}
+        {isUnlockedSuccess ? (
+          <div className="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 animate-in fade-in">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 stroke-[2.5]" />
-            <span>اطلاعات تایید شد. در حال ورود...</span>
+            <span>رمز تایید شد. در حال ورود...</span>
           </div>
-        )}
-
-        {/* Error Alert */}
-        {errorMsg && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-2xl text-xs font-bold flex items-center gap-2 text-right">
-            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-            <span className="leading-tight">{errorMsg}</span>
+        ) : errorMsg ? (
+          <div className="p-2 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+            <span className="text-[11px] leading-tight">{errorMsg}</span>
           </div>
-        )}
+        ) : null}
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 text-right">
-          {/* Username Field */}
-          <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5 flex items-center gap-1.5">
-              <User className="w-4 h-4 text-[#2563eb]" />
-              <span>نام کاربری:</span>
-            </label>
-            <input
-              type="text"
-              dir="ltr"
-              required
-              value={username}
-              onBlur={handleInputBlur}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="نام کاربری را وارد کنید"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono text-base font-bold placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all text-center tracking-wider"
-            />
-            {localStorage.getItem('hoshdar_remembered_username') && (
-              <span className="block text-[10px] text-slate-400 font-bold mt-1 text-center">
-                ✓ حساب کاربری ذخیره شده است
-              </span>
-            )}
-          </div>
-
-          {/* PIN Code Field */}
-          <div>
-            <label className="block text-xs font-black text-slate-800 mb-1.5 flex items-center gap-1.5">
-              <KeyRound className="w-4 h-4 text-[#2563eb]" />
-              <span>کد پین امنیتی:</span>
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                dir="ltr"
-                required
-                value={pinInput}
-                onBlur={handleInputBlur}
-                onChange={(e) => setPinInput(e.target.value)}
-                placeholder="کد پین امنیتی را وارد کنید"
-                className="w-full pr-4 pl-11 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 font-mono text-base font-bold placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#2563eb] focus:ring-4 focus:ring-blue-100 transition-all text-center tracking-wider"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute left-3 top-3.5 text-slate-400 hover:text-slate-600 p-1"
-                title={showPassword ? 'مخفی کردن' : 'نمایش رمز'}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="pt-2">
+        {/* Virtual Calculator Keypad (NO phone keyboard triggers!) */}
+        <div className="grid grid-cols-3 gap-2.5 pt-1 max-w-[240px] mx-auto">
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
             <button
-              type="submit"
-              disabled={isUnlockedSuccess || !pinInput || !username}
-              style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-              className="w-full py-3.5 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50 text-white font-black text-sm shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] cursor-pointer"
+              key={num}
+              type="button"
+              onClick={() => handleDigitPress(num)}
+              disabled={isUnlockedSuccess}
+              className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4 text-white stroke-[2.5]" />
-              <span className="text-white font-black">ورود به سامانه</span>
+              {num}
             </button>
-          </div>
-        </form>
+          ))}
 
+          {/* Clear Button (C) */}
+          <button
+            type="button"
+            onClick={handleClearAll}
+            disabled={isUnlockedSuccess || enteredDigits.length === 0}
+            className="h-14 rounded-2xl bg-slate-100 hover:bg-red-50 active:bg-red-100 text-slate-600 hover:text-red-600 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+            title="پاک کردن کل"
+          >
+            C
+          </button>
+
+          {/* Digit 0 */}
+          <button
+            type="button"
+            onClick={() => handleDigitPress('0')}
+            disabled={isUnlockedSuccess}
+            className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer"
+          >
+            0
+          </button>
+
+          {/* Delete / Backspace Button */}
+          <button
+            type="button"
+            onClick={handleBackspace}
+            disabled={isUnlockedSuccess || enteredDigits.length === 0}
+            className="h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+            title="حذف رقم آخر"
+          >
+            <Delete className="w-5 h-5 text-slate-700 stroke-[2.2]" />
+          </button>
+        </div>
+
+        {/* Footer info */}
         <div className="pt-2 text-[10px] text-slate-400 font-semibold border-t border-slate-100">
           شرکت آرمین صنعت ثمین (شرق) • مهندس نریمانی
         </div>
