@@ -4,9 +4,7 @@ import {
   Unlock, 
   AlertCircle, 
   CheckCircle2, 
-  Delete, 
-  RotateCcw,
-  ShieldCheck 
+  Delete 
 } from 'lucide-react';
 
 interface LockScreenProps {
@@ -66,9 +64,9 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto select-none">
+    <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto select-none [-webkit-touch-callout:none] [-webkit-user-select:none]">
       <div 
-        className={`bg-white rounded-3xl max-w-xs w-full p-6 sm:p-7 shadow-2xl border border-slate-200/90 text-center space-y-4 my-auto animate-in fade-in zoom-in-95 duration-200 transition-transform ${
+        className={`bg-white rounded-3xl max-w-xs w-full p-6 sm:p-7 shadow-2xl border border-slate-200/90 text-center space-y-4 my-auto select-none [-webkit-touch-callout:none] [-webkit-user-select:none] animate-in fade-in zoom-in-95 duration-200 transition-transform ${
           isShaking ? 'animate-bounce' : ''
         }`}
       >
@@ -94,9 +92,9 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
           </p>
         </div>
 
-        {/* Visual 4-Dot Passcode Display */}
+        {/* Visual 4-Dot Passcode Display (Left-to-Right) */}
         <div className="py-2">
-          <div className="flex items-center justify-center gap-3.5">
+          <div dir="ltr" className="flex items-center justify-center gap-3.5">
             {[0, 1, 2, 3].map((index) => {
               const isFilled = enteredDigits.length > index;
               return (
@@ -128,47 +126,75 @@ export const LockScreen: React.FC<LockScreenProps> = ({ onUnlock }) => {
           </div>
         ) : null}
 
-        {/* Virtual Calculator Keypad (NO phone keyboard triggers!) */}
-        <div className="grid grid-cols-3 gap-2.5 pt-1 max-w-[240px] mx-auto">
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
+        {/* Standard Calculator Keypad: STRICT LTR Layout (1 on top-left, 2 center, 3 top-right) */}
+        <div 
+          dir="ltr" 
+          className="grid grid-cols-3 gap-2.5 pt-1 max-w-[240px] mx-auto select-none [-webkit-touch-callout:none] [-webkit-user-select:none] [touch-action:manipulation]"
+        >
+          {/* Row 1: 1, 2, 3 */}
+          {['1', '2', '3'].map((num) => (
             <button
               key={num}
               type="button"
               onClick={() => handleDigitPress(num)}
               disabled={isUnlockedSuccess}
-              className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer"
+              className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
             >
               {num}
             </button>
           ))}
 
-          {/* Clear Button (C) */}
+          {/* Row 2: 4, 5, 6 */}
+          {['4', '5', '6'].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => handleDigitPress(num)}
+              disabled={isUnlockedSuccess}
+              className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
+            >
+              {num}
+            </button>
+          ))}
+
+          {/* Row 3: 7, 8, 9 */}
+          {['7', '8', '9'].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => handleDigitPress(num)}
+              disabled={isUnlockedSuccess}
+              className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
+            >
+              {num}
+            </button>
+          ))}
+
+          {/* Row 4: Clear (C), 0, Backspace (⌫) */}
           <button
             type="button"
             onClick={handleClearAll}
             disabled={isUnlockedSuccess || enteredDigits.length === 0}
-            className="h-14 rounded-2xl bg-slate-100 hover:bg-red-50 active:bg-red-100 text-slate-600 hover:text-red-600 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+            className="h-14 rounded-2xl bg-slate-100 hover:bg-red-50 active:bg-red-100 text-slate-600 hover:text-red-600 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40 select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
             title="پاک کردن کل"
           >
             C
           </button>
 
-          {/* Digit 0 */}
           <button
             type="button"
             onClick={() => handleDigitPress('0')}
             disabled={isUnlockedSuccess}
-            className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer"
+            className="h-14 rounded-2xl bg-slate-50 hover:bg-slate-100 active:bg-blue-100 active:text-[#2563eb] border border-slate-200/90 text-slate-900 font-mono text-xl font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
           >
             0
           </button>
 
-          {/* Delete / Backspace Button */}
           <button
             type="button"
             onClick={handleBackspace}
             disabled={isUnlockedSuccess || enteredDigits.length === 0}
-            className="h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+            className="h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 border border-slate-200/90 text-sm font-black shadow-sm transition-all transform active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40 select-none [-webkit-user-select:none] [-webkit-touch-callout:none] [touch-action:manipulation] focus:outline-none [-webkit-tap-highlight-color:transparent]"
             title="حذف رقم آخر"
           >
             <Delete className="w-5 h-5 text-slate-700 stroke-[2.2]" />
